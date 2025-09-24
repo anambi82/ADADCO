@@ -10,16 +10,11 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    jupyter \
-    jupyterlab \
-    numpy \
-    pandas \
-    matplotlib \
-    seaborn \
-    scikit-learn \
-    scipy
+# Copy requirements file
+COPY requirements.txt /app/
+
+# Install Python dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the current directory contents into the container
 COPY . /app
