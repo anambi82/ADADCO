@@ -1,0 +1,12 @@
+BENIGN
+Bot
+DDoS
+DoS Hulk
+DoS Slowhttptest
+DoS slowloris
+FTP-Patator
+Infiltration
+PortScan
+Web Attack � Brute Force
+Web Attack � Sql Injection
+Web Attack � XSS
