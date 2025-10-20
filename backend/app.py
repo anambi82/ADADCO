@@ -40,6 +40,13 @@ scaler_stats = None
 classes = []
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# Global storage for latest analysis results (for visualization endpoints)
+latest_analysis = {
+    'results': None,
+    'timestamp': None,
+    'filename': None
+}
+
 def load_model_artifacts():
     """Load model, scaler stats, and classes from artifacts directory"""
     global model, scaler_stats, classes
@@ -184,7 +191,12 @@ def root():
             'POST /predict': 'Make predictions on data',
             'POST /evaluate': 'Evaluate model with labeled data',
             'POST /batch_predict': 'Batch predictions (CSV or JSON)',
-            'POST /analyze_file': 'Upload CSV file for anomaly detection analysis'
+            'POST /analyze_file': 'Upload CSV file for anomaly detection analysis',
+            'GET /analysis/summary': 'Get summary of latest analysis',
+            'GET /analysis/attacks': 'Get attack type distribution',
+            'GET /analysis/anomalies': 'Get detailed anomaly information (supports query params)',
+            'GET /analysis/confidence': 'Get confidence metrics by attack type',
+            'GET /analysis/timeline': 'Get time-series anomaly data (supports query params)'
         },
         'documentation': 'See README.md for detailed API documentation',
         'github': 'https://github.com/anambi82/ADADCO'
@@ -406,6 +418,235 @@ def batch_predict():
         logger.error(f"Batch prediction error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/analysis/summary', methods=['GET'])
+def get_analysis_summary():
+    """
+    Get summary of the latest file analysis
+
+    Returns high-level statistics including:
+    - Total samples analyzed
+    - Anomaly count and rate
+    - Attack type breakdown
+    - Analysis timestamp
+    """
+    if latest_analysis['results'] is None:
+        return jsonify({
+            'error': 'No analysis available. Please upload and analyze a file first.',
+            'available': False
+        }), 404
+
+    results = latest_analysis['results']
+
+    return jsonify({
+        'available': True,
+        'filename': latest_analysis['filename'],
+        'timestamp': latest_analysis['timestamp'],
+        'summary': {
+            'total_samples': results['analysis']['total_samples'],
+            'benign_count': results['analysis']['benign_count'],
+            'anomaly_count': results['analysis']['anomaly_count'],
+            'anomaly_rate': results['analysis']['anomaly_rate'],
+            'severity': results['summary']['severity'],
+            'unique_attack_types': results['summary']['unique_attack_types'],
+            'most_common_attack': results['summary']['most_common_attack']
+        }
+    })
+
+@app.route('/analysis/attacks', methods=['GET'])
+def get_attack_distribution():
+    """
+    Get attack type distribution for visualization
+
+    Returns breakdown of all detected attack types with:
+    - Attack type name
+    - Count of occurrences
+    - Percentage of total samples
+    - Average confidence score
+    """
+    if latest_analysis['results'] is None:
+        return jsonify({
+            'error': 'No analysis available. Please upload and analyze a file first.',
+            'available': False
+        }), 404
+
+    results = latest_analysis['results']
+
+    # Format for easier visualization
+    attack_data = []
+    for attack_type, stats in results['attack_breakdown'].items():
+        attack_data.append({
+            'attack_type': attack_type,
+            'count': stats['count'],
+            'percentage': stats['percentage'],
+            'confidence': results['attack_confidence'].get(attack_type, 0)
+        })
+
+    # Sort by count descending
+    attack_data.sort(key=lambda x: x['count'], reverse=True)
+
+    return jsonify({
+        'available': True,
+        'filename': latest_analysis['filename'],
+        'timestamp': latest_analysis['timestamp'],
+        'attacks': attack_data,
+        'total_attack_types': len(attack_data)
+    })
+
+@app.route('/analysis/anomalies', methods=['GET'])
+def get_anomaly_details():
+    """
+    Get detailed anomaly information
+
+    Query parameters:
+    - limit: Maximum number of anomalies to return (default: 100)
+    - min_confidence: Minimum confidence threshold (default: 0.0)
+    - attack_type: Filter by specific attack type (optional)
+
+    Returns list of detected anomalies with confidence scores and probabilities
+    """
+    if latest_analysis['results'] is None:
+        return jsonify({
+            'error': 'No analysis available. Please upload and analyze a file first.',
+            'available': False
+        }), 404
+
+    results = latest_analysis['results']
+
+    # Get query parameters
+    limit = request.args.get('limit', default=100, type=int)
+    min_confidence = request.args.get('min_confidence', default=0.0, type=float)
+    attack_type_filter = request.args.get('attack_type', default=None, type=str)
+
+    # Filter anomalies
+    anomalies = results['top_anomalies']
+
+    if attack_type_filter:
+        anomalies = [a for a in anomalies if a['attack_type'] == attack_type_filter]
+
+    if min_confidence > 0:
+        anomalies = [a for a in anomalies if a['confidence'] >= min_confidence]
+
+    # Apply limit
+    anomalies = anomalies[:limit]
+
+    return jsonify({
+        'available': True,
+        'filename': latest_analysis['filename'],
+        'timestamp': latest_analysis['timestamp'],
+        'anomalies': anomalies,
+        'count': len(anomalies),
+        'filters': {
+            'limit': limit,
+            'min_confidence': min_confidence,
+            'attack_type': attack_type_filter
+        }
+    })
+
+@app.route('/analysis/confidence', methods=['GET'])
+def get_confidence_metrics():
+    """
+    Get confidence score metrics for all attack types
+
+    Returns:
+    - Average confidence per attack type
+    - Overall confidence statistics
+    - Confidence distribution data
+    """
+    if latest_analysis['results'] is None:
+        return jsonify({
+            'error': 'No analysis available. Please upload and analyze a file first.',
+            'available': False
+        }), 404
+
+    results = latest_analysis['results']
+
+    # Format confidence data
+    confidence_data = []
+    all_confidences = []
+
+    for attack_type, avg_confidence in results['attack_confidence'].items():
+        confidence_data.append({
+            'attack_type': attack_type,
+            'average_confidence': avg_confidence,
+            'sample_count': results['attack_breakdown'][attack_type]['count']
+        })
+        all_confidences.append(avg_confidence)
+
+    # Calculate overall statistics
+    overall_stats = {}
+    if all_confidences:
+        overall_stats = {
+            'mean': float(np.mean(all_confidences)),
+            'median': float(np.median(all_confidences)),
+            'std': float(np.std(all_confidences)),
+            'min': float(np.min(all_confidences)),
+            'max': float(np.max(all_confidences))
+        }
+
+    return jsonify({
+        'available': True,
+        'filename': latest_analysis['filename'],
+        'timestamp': latest_analysis['timestamp'],
+        'confidence_by_attack': confidence_data,
+        'overall_statistics': overall_stats
+    })
+
+@app.route('/analysis/timeline', methods=['GET'])
+def get_anomaly_timeline():
+    """
+    Get anomaly detection timeline data for time-series visualization
+
+    Query parameters:
+    - window_size: Number of samples per time window (default: 100)
+
+    Returns anomaly counts over sequential windows for trend visualization
+    """
+    if latest_analysis['results'] is None:
+        return jsonify({
+            'error': 'No analysis available. Please upload and analyze a file first.',
+            'available': False
+        }), 404
+
+    results = latest_analysis['results']
+    window_size = request.args.get('window_size', default=100, type=int)
+
+    # Get all predictions from stored results
+    anomalies = results['top_anomalies']
+    total_samples = results['analysis']['total_samples']
+
+    # Create timeline windows
+    num_windows = max(1, total_samples // window_size)
+    timeline = []
+
+    for i in range(num_windows):
+        start_idx = i * window_size
+        end_idx = min((i + 1) * window_size, total_samples)
+
+        # Count anomalies in this window
+        window_anomalies = [a for a in anomalies if start_idx <= a['sample_index'] < end_idx]
+
+        # Count by attack type
+        attack_counts = {}
+        for anomaly in window_anomalies:
+            attack_type = anomaly['attack_type']
+            attack_counts[attack_type] = attack_counts.get(attack_type, 0) + 1
+
+        timeline.append({
+            'window': i,
+            'sample_range': f"{start_idx}-{end_idx}",
+            'anomaly_count': len(window_anomalies),
+            'attack_breakdown': attack_counts
+        })
+
+    return jsonify({
+        'available': True,
+        'filename': latest_analysis['filename'],
+        'timestamp': latest_analysis['timestamp'],
+        'timeline': timeline,
+        'window_size': window_size,
+        'total_windows': num_windows
+    })
+
 @app.route('/analyze_file', methods=['POST'])
 def analyze_file():
     """
@@ -533,7 +774,8 @@ def analyze_file():
 
         logger.info(f"Analysis complete: {anomaly_count}/{total_samples} anomalies detected ({anomaly_rate:.2f}%)")
 
-        return jsonify({
+        # Prepare response
+        response_data = {
             'success': True,
             'filename': file.filename,
             'analysis': {
@@ -550,7 +792,15 @@ def analyze_file():
                 'unique_attack_types': len(attack_types),
                 'severity': 'HIGH' if anomaly_rate > 50 else 'MEDIUM' if anomaly_rate > 20 else 'LOW'
             }
-        })
+        }
+
+        # Store results globally for visualization endpoints
+        global latest_analysis
+        latest_analysis['results'] = response_data
+        latest_analysis['timestamp'] = datetime.now().isoformat()
+        latest_analysis['filename'] = file.filename
+
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"File analysis error: {str(e)}")
