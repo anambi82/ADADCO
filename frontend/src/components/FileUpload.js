@@ -1,0 +1,74 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import './FileUpload.css';
+
+const FileUpload = ({ onUploadSuccess }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleFileSelect = (event) => {
+    setSelectedFile(event.target.files[0]);
+    setMessage('');
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setMessage('Please select a file first');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    setUploading(true);
+    setMessage('');
+
+    try {
+      const response = await axios.post('http://localhost:5000/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setMessage('File uploaded successfully!');
+      onUploadSuccess(response.data);
+      setSelectedFile(null);
+    } catch (error) {
+      setMessage(`Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="file-upload-container">
+      <h2>Upload File</h2>
+      <div className="upload-area">
+        <input
+          type="file"
+          onChange={handleFileSelect}
+          disabled={uploading}
+          id="file-input"
+        />
+        <label htmlFor="file-input" className="file-label">
+          {selectedFile ? selectedFile.name : 'Choose a file'}
+        </label>
+        <button
+          onClick={handleUpload}
+          disabled={!selectedFile || uploading}
+          className="upload-button"
+        >
+          {uploading ? 'Uploading...' : 'Upload'}
+        </button>
+      </div>
+      {message && (
+        <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
+          {message}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FileUpload;
