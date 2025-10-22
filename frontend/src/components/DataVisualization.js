@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './DataVisualization.css';
 
-const DataVisualization = ({ data }) => {
+const DataVisualization = () => {
     const [analysisData, setAnalysisData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -37,12 +37,9 @@ const DataVisualization = ({ data }) => {
     };
 
     useEffect(() => {
-        if (data) {
-            setAnalysisData(data);
-        } else {
-            fetchAnalysisData();
-        }
-    }, [data]);
+        // Always fetch fresh data when component mounts
+        fetchAnalysisData();
+    }, []); // Empty dependency array means this runs once on mount
 
     useEffect(() => {
         if (analysisData && !analysisData.attacks) {
