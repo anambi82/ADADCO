@@ -3,72 +3,72 @@ import axios from 'axios';
 import './FileUpload.css';
 
 const FileUpload = ({ onUploadSuccess }) => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [message, setMessage] = useState('');
 
-  const handleFileSelect = (event) => {
-    setSelectedFile(event.target.files[0]);
-    setMessage('');
-  };
+    const handleFileSelect = (event) => {
+        setSelectedFile(event.target.files[0]);
+        setMessage('');
+    };
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      setMessage('Please select a file first');
-      return;
-    }
+    const handleUpload = async () => {
+        if (!selectedFile) {
+            setMessage('Please select a file first');
+            return;
+        }
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
-    setUploading(true);
-    setMessage('');
+        setUploading(true);
+        setMessage('');
 
-    try {
-      const response = await axios.post('http://localhost:5000/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+        try {
+            const response = await axios.post('http://localhost:8000/analyze_file', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
 
-      setMessage('File uploaded successfully!');
-      onUploadSuccess(response.data);
-      setSelectedFile(null);
-    } catch (error) {
-      setMessage(`Error: ${error.response?.data?.error || error.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
+            setMessage(`Analysis complete! Found ${response.data.analysis.anomaly_count} anomalies out of ${response.data.analysis.total_samples} samples.`);
+            onUploadSuccess(response.data);
+            setSelectedFile(null);
+        } catch (error) {
+            setMessage(`Error: ${error.response?.data?.error || error.message}`);
+        } finally {
+            setUploading(false);
+        }
+    };
 
-  return (
-    <div className="file-upload-container">
-      <h2>Upload File</h2>
-      <div className="upload-area">
-        <input
-          type="file"
-          onChange={handleFileSelect}
-          disabled={uploading}
-          id="file-input"
-        />
-        <label htmlFor="file-input" className="file-label">
-          {selectedFile ? selectedFile.name : 'Choose a file'}
-        </label>
-        <button
-          onClick={handleUpload}
-          disabled={!selectedFile || uploading}
-          className="upload-button"
-        >
-          {uploading ? 'Uploading...' : 'Upload'}
-        </button>
-      </div>
-      {message && (
-        <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
-          {message}
+    return (
+        <div className="file-upload-container">
+            <h2>Upload File</h2>
+            <div className="upload-area">
+                <input
+                    type="file"
+                    onChange={handleFileSelect}
+                    disabled={uploading}
+                    id="file-input"
+                />
+                <label htmlFor="file-input" className="file-label">
+                    {selectedFile ? selectedFile.name : 'Choose a file'}
+                </label>
+                <button
+                    onClick={handleUpload}
+                    disabled={!selectedFile || uploading}
+                    className="upload-button"
+                >
+                    {uploading ? 'Uploading...' : 'Upload'}
+                </button>
+            </div>
+            {message && (
+                <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
+                    {message}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default FileUpload;
