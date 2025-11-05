@@ -97,16 +97,13 @@ const Records = ({ onSelectRecord }) => {
                         >
                             <div className="record-header">
                                 <div className="record-title">
-                                    <span className="file-icon">📄</span>
                                     <span className="file-name">{record.fileName}</span>
                                 </div>
                                 <button
                                     className="delete-button"
                                     onClick={(e) => handleDeleteRecord(e, record.id)}
                                     title="Delete record"
-                                >
-                                    🗑️
-                                </button>
+                                />
                             </div>
 
                             <div className="record-details">
