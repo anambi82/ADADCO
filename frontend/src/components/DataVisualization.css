@@ -2,6 +2,19 @@
     padding: 20px;
 }
 
+.record-indicator {
+    padding: 12px 20px;
+    background-color: #e7f3ff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: #0056b3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .refresh-button {
     padding: 10px 20px;
     background-color: #28a745;

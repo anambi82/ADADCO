@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { saveRecord } from '../utils/cookieManager';
 import './FileUpload.css';
 
 const FileUpload = ({ onUploadSuccess }) => {
@@ -32,6 +33,14 @@ const FileUpload = ({ onUploadSuccess }) => {
             });
 
             setMessage(`Analysis complete! Found ${response.data.analysis.anomaly_count} anomalies out of ${response.data.analysis.total_samples} samples.`);
+            
+            // Save the analysis to cookies with file name
+            const dataWithFileName = {
+                ...response.data,
+                fileName: selectedFile.name
+            };
+            saveRecord(dataWithFileName);
+            
             onUploadSuccess(response.data);
             setSelectedFile(null);
         } catch (error) {

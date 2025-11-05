@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './DataVisualization.css';
 
-const DataVisualization = () => {
+const DataVisualization = ({ selectedRecord }) => {
     const [analysisData, setAnalysisData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -48,18 +48,49 @@ const DataVisualization = () => {
     };
 
     useEffect(() => {
-        // Always fetch fresh data when component mounts
-        fetchAnalysisData();
-    }, []); // Empty dependency array means this runs once on mount
+        // If a record is selected, use it; otherwise fetch fresh data
+        if (selectedRecord) {
+            // Calculate confidence statistics if missing
+            let confidenceData = selectedRecord.confidence;
+            if (confidenceData && !confidenceData.statistics && confidenceData.confidence_by_attack) {
+                const confidences = confidenceData.confidence_by_attack.map(c => c.average_confidence);
+                if (confidences.length > 0) {
+                    confidenceData = {
+                        ...confidenceData,
+                        statistics: {
+                            mean: confidences.reduce((a, b) => a + b, 0) / confidences.length,
+                            median: confidences.sort()[Math.floor(confidences.length / 2)],
+                            min: Math.min(...confidences),
+                            max: Math.max(...confidences)
+                        }
+                    };
+                }
+            }
+            
+            setAnalysisData({
+                summary: selectedRecord.summary,
+                attacks: selectedRecord.attacks,
+                confidence: confidenceData,
+                timestamp: selectedRecord.timestamp,
+                available: true
+            });
+            setError('');
+        } else {
+            fetchAnalysisData();
+        }
+    }, [selectedRecord]); // Runs when selectedRecord changes
 
     useEffect(() => {
-        if (analysisData && !analysisData.attacks) {
-            fetchAttackData();
+        // Only fetch additional data if we're not using a selected record
+        if (!selectedRecord) {
+            if (analysisData && !analysisData.attacks) {
+                fetchAttackData();
+            }
+            if (analysisData && !analysisData.confidence) {
+                fetchConfidenceData();
+            }
         }
-        if (analysisData && !analysisData.confidence) {
-            fetchConfidenceData();
-        }
-    }, [analysisData]);
+    }, [analysisData, selectedRecord]);
 
     // Convert attack data for charts
     const getAttackChartData = () => {
@@ -84,10 +115,18 @@ const DataVisualization = () => {
     return (
         <div className="data-visualization-container">
             <h2>Network Traffic Analysis Dashboard</h2>
+            
+            {selectedRecord && (
+                <div className="record-indicator">
+                    📄 Viewing saved record from {new Date(selectedRecord.timestamp).toLocaleString()}
+                </div>
+            )}
 
-            <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
-                {loading ? 'Loading...' : 'Refresh Analysis'}
-            </button>
+            {!selectedRecord && (
+                <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
+                    {loading ? 'Loading...' : 'Refresh Analysis'}
+                </button>
+            )}
 
             {error && <div className="error-message">{error}</div>}
 
