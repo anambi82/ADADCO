@@ -50,27 +50,18 @@ const DataVisualization = ({ selectedRecord }) => {
     useEffect(() => {
         // If a record is selected, use it; otherwise fetch fresh data
         if (selectedRecord) {
-            // Calculate confidence statistics if missing
-            let confidenceData = selectedRecord.confidence;
-            if (confidenceData && !confidenceData.statistics && confidenceData.confidence_by_attack) {
-                const confidences = confidenceData.confidence_by_attack.map(c => c.average_confidence);
-                if (confidences.length > 0) {
-                    confidenceData = {
-                        ...confidenceData,
-                        statistics: {
-                            mean: confidences.reduce((a, b) => a + b, 0) / confidences.length,
-                            median: confidences.sort()[Math.floor(confidences.length / 2)],
-                            min: Math.min(...confidences),
-                            max: Math.max(...confidences)
-                        }
-                    };
-                }
-            }
+            // Format attacks to include percentage for charts (calculate from counts)
+            const attacksWithPercentage = selectedRecord.attacks?.map(attack => ({
+                ...attack,
+                percentage: selectedRecord.summary?.total_samples 
+                    ? (attack.count / selectedRecord.summary.total_samples * 100) 
+                    : 0
+            })) || [];
             
             setAnalysisData({
                 summary: selectedRecord.summary,
-                attacks: selectedRecord.attacks,
-                confidence: confidenceData,
+                attacks: attacksWithPercentage,
+                confidence: null, // Minimal records don't store confidence data
                 timestamp: selectedRecord.timestamp,
                 available: true
             });

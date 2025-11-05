@@ -8,6 +8,20 @@ const Records = ({ onSelectRecord }) => {
 
     useEffect(() => {
         loadRecords();
+        
+        // Set up interval to check for new records every 2 seconds
+        const interval = setInterval(() => {
+            loadRecords();
+        }, 2000);
+        
+        // Also reload when window gains focus
+        const handleFocus = () => loadRecords();
+        window.addEventListener('focus', handleFocus);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+        };
     }, []);
 
     const loadRecords = () => {
@@ -131,14 +145,14 @@ const Records = ({ onSelectRecord }) => {
                                     <div className="record-attacks">
                                         <span className="detail-label">Attack Types:</span>
                                         <div className="attack-tags">
-                                            {record.attacks.slice(0, 3).map((attack, index) => (
+                                            {record.attacks.map((attack, index) => (
                                                 <span key={index} className="attack-tag">
                                                     {attack.attack_type}
                                                 </span>
                                             ))}
-                                            {record.attacks.length > 3 && (
+                                            {record.totalAttackTypes > record.attacks.length && (
                                                 <span className="attack-tag more">
-                                                    +{record.attacks.length - 3} more
+                                                    +{record.totalAttackTypes - record.attacks.length} more
                                                 </span>
                                             )}
                                         </div>

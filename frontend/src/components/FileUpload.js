@@ -39,7 +39,15 @@ const FileUpload = ({ onUploadSuccess }) => {
                 ...response.data,
                 fileName: selectedFile.name
             };
-            saveRecord(dataWithFileName);
+            const recordId = saveRecord(dataWithFileName);
+            
+            if (recordId) {
+                console.log('✅ Record saved successfully with ID:', recordId);
+                setMessage(`Analysis complete! Found ${response.data.analysis.anomaly_count} anomalies. Record saved to history.`);
+            } else {
+                console.warn('⚠️ Failed to save record to cookies');
+                setMessage(`Analysis complete! Found ${response.data.analysis.anomaly_count} anomalies. (Warning: Could not save to history)`);
+            }
             
             onUploadSuccess(response.data);
             setSelectedFile(null);
