@@ -105,25 +105,25 @@ const DataVisualization = ({ selectedRecord }) => {
 
     return (
         <div className="data-visualization-container">
-            <h2>Network Traffic Analysis Dashboard</h2>
+            <div className="visualization-header">
+                <h2>Network Traffic Analysis</h2>
+                {!selectedRecord && (
+                    <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
+                        {loading ? 'Loading...' : 'Refresh Analysis'}
+                    </button>
+                )}
+            </div>
             
             {selectedRecord && (
                 <div className="record-indicator">
-                    📄 Viewing saved record from {new Date(selectedRecord.timestamp).toLocaleString()}
+                    Viewing saved record from {new Date(selectedRecord.timestamp).toLocaleString()}
                 </div>
-            )}
-
-            {!selectedRecord && (
-                <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
-                    {loading ? 'Loading...' : 'Refresh Analysis'}
-                </button>
             )}
 
             {error && <div className="error-message">{error}</div>}
 
             {analysisData && (
                 <div className="analysis-summary">
-                    <h3>Analysis Summary</h3>
                     <div className="summary-cards">
                         <div className="summary-card">
                             <h4>Total Samples</h4>
@@ -207,9 +207,7 @@ const DataVisualization = ({ selectedRecord }) => {
             </div>
 
             {analysisData && (
-                <div className="data-preview">
-                    <h3>Analysis Details</h3>
-                    <div className="analysis-details-grid">
+                <div className="analysis-details-grid">
                         {analysisData.summary && (
                             <div className="details-section">
                                 <h4>Summary Information</h4>
@@ -307,7 +305,6 @@ const DataVisualization = ({ selectedRecord }) => {
                                 </div>
                             </div>
                         )}
-                    </div>
                 </div>
             )}
         </div>
