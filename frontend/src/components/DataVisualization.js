@@ -166,17 +166,35 @@ const DataVisualization = ({ selectedRecord }) => {
 
                         <div className="chart-wrapper">
                             <h3>Attack Types Pie Chart</h3>
-                            <ResponsiveContainer width="100%" height={300}>
+                            <ResponsiveContainer width="100%" height={500}>
                                 <PieChart>
                                     <Pie
                                         data={getAttackChartData()}
                                         cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
-                                        outerRadius={80}
+                                        cy="45%"
+                                        labelLine={{ stroke: '#8884d8', strokeWidth: 1 }}
+                                        label={({ cx, cy, midAngle, outerRadius, name, percentage }) => {
+                                            const RADIAN = Math.PI / 180;
+                                            const radius = outerRadius + 30;
+                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                                            return (
+                                                <text
+                                                    x={x}
+                                                    y={y}
+                                                    fill="black"
+                                                    textAnchor={x > cx ? 'start' : 'end'}
+                                                    dominantBaseline="central"
+                                                    style={{ fontSize: '12px' }}
+                                                >
+                                                    {`${name}: ${percentage.toFixed(1)}%`}
+                                                </text>
+                                            );
+                                        }}
+                                        outerRadius={90}
                                         fill="#8884d8"
                                         dataKey="count"
+                                        paddingAngle={1}
                                     >
                                         {getAttackChartData().map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
