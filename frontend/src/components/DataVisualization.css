@@ -116,3 +116,159 @@
 .severity-low {
     color: #28a745 !important;
 }
+
+/* Analysis Details Styling */
+.analysis-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.details-section {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.details-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: #666;
+    font-size: 14px;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.severity-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.severity-badge.severity-high {
+    background-color: #f8d7da;
+    color: #721c24 !important;
+}
+
+.severity-badge.severity-medium {
+    background-color: #fff3cd;
+    color: #856404 !important;
+}
+
+.severity-badge.severity-low {
+    background-color: #d4edda;
+    color: #155724 !important;
+}
+
+/* Attack List Styling */
+.attack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.attack-item {
+    padding: 12px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+
+.attack-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.attack-type {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.attack-count {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+}
+
+.attack-percentage {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.percentage-bar {
+    flex: 1;
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.percentage-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+.percentage-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Confidence Display Styling */
+.attack-confidence {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #dee2e6;
+}
+
+.confidence-label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.confidence-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #28a745;
+    padding: 2px 8px;
+    background-color: #d4edda;
+    border-radius: 8px;
+}

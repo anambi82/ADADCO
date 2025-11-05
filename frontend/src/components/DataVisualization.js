@@ -36,6 +36,17 @@ const DataVisualization = () => {
         }
     };
 
+    const fetchConfidenceData = async () => {
+        try {
+            const response = await axios.get('http://localhost:8000/analysis/confidence');
+            if (response.data.available) {
+                setAnalysisData(prev => ({ ...prev, confidence: response.data }));
+            }
+        } catch (err) {
+            console.error('Error fetching confidence data:', err);
+        }
+    };
+
     useEffect(() => {
         // Always fetch fresh data when component mounts
         fetchAnalysisData();
@@ -44,6 +55,9 @@ const DataVisualization = () => {
     useEffect(() => {
         if (analysisData && !analysisData.attacks) {
             fetchAttackData();
+        }
+        if (analysisData && !analysisData.confidence) {
+            fetchConfidenceData();
         }
     }, [analysisData]);
 
@@ -165,7 +179,105 @@ const DataVisualization = () => {
             {analysisData && (
                 <div className="data-preview">
                     <h3>Analysis Details</h3>
-                    <pre>{JSON.stringify(analysisData, null, 2)}</pre>
+                    <div className="analysis-details-grid">
+                        {analysisData.summary && (
+                            <div className="details-section">
+                                <h4>Summary Information</h4>
+                                <div className="detail-row">
+                                    <span className="detail-label">Total Samples:</span>
+                                    <span className="detail-value">{analysisData.summary.total_samples || 0}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Benign Count:</span>
+                                    <span className="detail-value">{analysisData.summary.benign_count || 0}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Anomaly Count:</span>
+                                    <span className="detail-value">{analysisData.summary.anomaly_count || 0}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Anomaly Rate:</span>
+                                    <span className="detail-value">{analysisData.summary.anomaly_rate || 0}%</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Severity Level:</span>
+                                    <span className={`detail-value severity-badge severity-${analysisData.summary.severity?.toLowerCase() || 'low'}`}>
+                                        {analysisData.summary.severity || 'LOW'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {analysisData.attacks && analysisData.attacks.length > 0 && (
+                            <div className="details-section">
+                                <h4>Attack Breakdown</h4>
+                                <div className="attack-list">
+                                    {analysisData.attacks.map((attack, index) => {
+                                        const confidenceData = analysisData.confidence?.confidence_by_attack?.find(
+                                            c => c.attack_type === attack.attack_type
+                                        );
+                                        const confidence = confidenceData?.average_confidence;
+
+                                        return (
+                                            <div key={index} className="attack-item">
+                                                <div className="attack-header">
+                                                    <span className="attack-type">{attack.attack_type}</span>
+                                                    <span className="attack-count">{attack.count} occurrences</span>
+                                                </div>
+                                                <div className="attack-percentage">
+                                                    <div className="percentage-bar">
+                                                        <div
+                                                            className="percentage-fill"
+                                                            style={{ width: `${attack.percentage}%`, backgroundColor: COLORS[index % COLORS.length] }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="percentage-text">{attack.percentage.toFixed(2)}%</span>
+                                                </div>
+                                                {confidence !== undefined && (
+                                                    <div className="attack-confidence">
+                                                        <span className="confidence-label">Confidence:</span>
+                                                        <span className="confidence-value">{(confidence * 100).toFixed(2)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {analysisData.confidence?.statistics && (
+                            <div className="details-section">
+                                <h4>Confidence Statistics</h4>
+                                <div className="detail-row">
+                                    <span className="detail-label">Mean Confidence:</span>
+                                    <span className="detail-value">{(analysisData.confidence.statistics.mean * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Median Confidence:</span>
+                                    <span className="detail-value">{(analysisData.confidence.statistics.median * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Min Confidence:</span>
+                                    <span className="detail-value">{(analysisData.confidence.statistics.min * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Max Confidence:</span>
+                                    <span className="detail-value">{(analysisData.confidence.statistics.max * 100).toFixed(2)}%</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {analysisData.timestamp && (
+                            <div className="details-section">
+                                <h4>Analysis Metadata</h4>
+                                <div className="detail-row">
+                                    <span className="detail-label">Analysis Date:</span>
+                                    <span className="detail-value">{new Date(analysisData.timestamp).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
