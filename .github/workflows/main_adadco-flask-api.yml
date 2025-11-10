@@ -1,0 +1,51 @@
+name: Deploy Flask backend to Azure Web App (monorepo)
+
+on:
+  push:
+    branches: [ main ]   # change if your default branch differs
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: adadco-flask-api   # <-- EXACT Web App name in Azure
+  BACKEND_PATH: backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Prepare backend-only package ---
+      - name: Ensure backend has requirements.txt
+        run: |
+          if [ -f requirements.txt ] && [ ! -f "$BACKEND_PATH/requirements.txt" ]; then
+            cp requirements.txt "$BACKEND_PATH/requirements.txt"
+          fi
+
+      - name: Include model artifacts if present
+        run: |
+          if [ -d artifacts ]; then
+            mkdir -p "$BACKEND_PATH/artifacts"
+            rsync -a artifacts/ "$BACKEND_PATH/artifacts/" || true
+          fi
+
+      # (Optional) sanity check build; safe to remove if you want faster deploys
+      - name: Sanity install
+        working-directory: ./backend
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements.txt
+
+      # --- Deploy ONLY the backend folder ---
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          # Use the publish profile secret you created (see step below)
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: ${{ env.BACKEND_PATH }}
