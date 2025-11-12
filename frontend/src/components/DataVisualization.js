@@ -186,41 +186,37 @@ const DataVisualization = ({ selectedRecord }) => {
 
                         <div className="chart-wrapper">
                             <h3>Attack Types Pie Chart</h3>
-                            <ResponsiveContainer width="100%" height={500}>
-                                <PieChart>
+                            <ResponsiveContainer width="100%" height={600}>
+                                <PieChart margin={{ top: 20, right: 20, bottom: 80, left: 20 }}>
                                     <Pie
                                         data={attackChartData}
                                         cx="50%"
                                         cy="45%"
-                                        labelLine={{ stroke: '#8884d8', strokeWidth: 1 }}
-                                        label={({ cx, cy, midAngle, outerRadius, name, percentage }) => {
-                                            const RADIAN = Math.PI / 180;
-                                            const radius = outerRadius + 30;
-                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                                            return (
-                                                <text
-                                                    x={x}
-                                                    y={y}
-                                                    fill="black"
-                                                    textAnchor={x > cx ? 'start' : 'end'}
-                                                    dominantBaseline="central"
-                                                    style={{ fontSize: '12px' }}
-                                                >
-                                                    {`${name}: ${percentage.toFixed(1)}%`}
-                                                </text>
-                                            );
-                                        }}
-                                        outerRadius={90}
+                                        outerRadius={110}
                                         fill="#8884d8"
                                         dataKey="count"
-                                        paddingAngle={1}
+                                        label={({ name, percentage }) => percentage > 2 ? `${name}: ${percentage.toFixed(1)}%` : ''}
+                                        labelLine={false}
                                     >
                                         {attackChartData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip
+                                        formatter={(value, name, props) => [
+                                            `${value} occurrences (${props.payload.percentage.toFixed(2)}%)`,
+                                            'Count'
+                                        ]}
+                                    />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        align="center"
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                        formatter={(value, entry) => {
+                                            const payload = entry.payload;
+                                            return `${value}: ${payload.count} (${payload.percentage.toFixed(2)}%)`;
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
