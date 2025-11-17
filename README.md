@@ -6,7 +6,27 @@ A full-stack network intrusion detection system that uses machine learning to an
 
 ## Quick Start Guide
 
-Follow these steps in order to get the system running:
+First launch the Flask Backend:
+
+```bash
+cd backend
+
+#Run app.py
+python3 app.py
+```
+
+Now launch the React Frontend
+```bash
+cd frontend
+
+#Run the react app
+npm start
+```
+(it is recommended to split terminals to run each component)
+
+## Jupyter Notebook Start Guide
+
+Follow these steps in order to get the Jupyter Notebook running:
 
 ### 1. Run Docker Environment
 
