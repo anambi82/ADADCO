@@ -168,6 +168,22 @@ const DataVisualization = ({ selectedRecord }) => {
             )}
 
             <div className="charts-container">
+                {analysisData?.summary && (
+                    <div className="chart-wrapper">
+                        <h3>Benign vs Anomalies</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={getTimelineData()}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="count" fill="#82ca9d" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
                 {analysisData?.attacks && analysisData.attacks.length > 0 && (
                     <>
                         <div className="chart-wrapper">
@@ -184,15 +200,15 @@ const DataVisualization = ({ selectedRecord }) => {
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="chart-wrapper">
+                        <div className="chart-wrapper full-width">
                             <h3>Attack Types Pie Chart</h3>
-                            <ResponsiveContainer width="100%" height={600}>
+                            <ResponsiveContainer width="100%" height={400}>
                                 <PieChart margin={{ top: 20, right: 20, bottom: 80, left: 20 }}>
                                     <Pie
                                         data={attackChartData}
                                         cx="50%"
-                                        cy="45%"
-                                        outerRadius={110}
+                                        cy="50%"
+                                        outerRadius={120}
                                         fill="#8884d8"
                                         dataKey="count"
                                         label={({ name, percentage }) => percentage > 2 ? `${name}: ${percentage.toFixed(1)}%` : ''}
@@ -223,21 +239,7 @@ const DataVisualization = ({ selectedRecord }) => {
                     </>
                 )}
 
-                {analysisData?.summary && (
-                    <div className="chart-wrapper">
-                        <h3>Benign vs Anomalies</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={getTimelineData()}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="count" fill="#82ca9d" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
+
             </div>
 
             {analysisData && (
