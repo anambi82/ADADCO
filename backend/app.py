@@ -17,23 +17,57 @@ app = Flask(__name__)
 CORS(app)
 
 
-# Model definition (matches your notebook)
-class MLP(nn.Module):
-    def __init__(self, in_dim, num_classes):
+# Model definition (matches modelV3.ipynb - ResidualMLP)
+class ResidualBlock(nn.Module):
+    def __init__(self, dim: int, dropout: float):
         super().__init__()
-        hidden = max(32, min(512, in_dim * 2))
         self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden),
-            nn.ReLU(),
-            nn.BatchNorm1d(hidden),
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-            nn.BatchNorm1d(hidden),
-            nn.Linear(hidden, num_classes),
+            nn.Linear(dim, dim),
+            nn.BatchNorm1d(dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim, dim),
+            nn.BatchNorm1d(dim),
+        )
+        self.act = nn.GELU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        out = self.net(x)
+        out = out + x
+        out = self.act(out)
+        out = self.dropout(out)
+        return out
+
+
+class ResidualMLP(nn.Module):
+    def __init__(self, in_dim: int, out_dim: int, dropout: float = 0.3):
+        super().__init__()
+        hidden_dims = [max(256, min(512, in_dim * 4)), 256, 128]
+        layers = []
+        prev = in_dim
+        for idx, h in enumerate(hidden_dims):
+            layers.extend([
+                nn.Linear(prev, h),
+                nn.BatchNorm1d(h),
+                nn.GELU(),
+                nn.Dropout(dropout if idx == 0 else dropout / 1.5),
+            ])
+            if idx < len(hidden_dims) - 1:
+                layers.append(ResidualBlock(h, dropout / 1.5))
+            prev = h
+        self.backbone = nn.Sequential(*layers)
+        self.head = nn.Sequential(
+            nn.Linear(prev, 128),
+            nn.LayerNorm(128),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(128, out_dim)
         )
 
     def forward(self, x):
-        return self.net(x)
+        x = self.backbone(x)
+        return self.head(x)
 
 
 # Global variables for model and artifacts
@@ -72,18 +106,18 @@ def load_model_artifacts():
         }
         logger.info(f"Loaded scaler with {len(scaler_stats['mean'])} features")
 
-        # Load model
-        model_path = os.path.join(artifacts_dir, "dos_mlp.pt")
+        # Load model (ResidualMLP from modelV3)
+        model_path = os.path.join(artifacts_dir, "dos_residual_mlp.pt")
         checkpoint = torch.load(model_path, map_location=device)
 
         # Initialize model with correct dimensions
         in_dim = len(scaler_stats["mean"])
         num_classes = len(classes)
-        model = MLP(in_dim, num_classes)
+        model = ResidualMLP(in_dim, num_classes, dropout=0.3)
         model.load_state_dict(checkpoint)
         model.to(device)
         model.eval()
-        logger.info(f"Loaded model: {in_dim} input features -> {num_classes} classes")
+        logger.info(f"Loaded ResidualMLP model: {in_dim} input features -> {num_classes} classes")
 
         return True
     except Exception as e:
@@ -246,8 +280,9 @@ def model_info():
             "input_features": len(scaler_stats["mean"]) if scaler_stats else 0,
             "device": str(device),
             "model_architecture": {
-                "type": "MLP",
-                "hidden_size": model.net[0].out_features if model else 0,
+                "type": "ResidualMLP",
+                "input_dim": len(scaler_stats["mean"]) if scaler_stats else 0,
+                "dropout": 0.3,
             },
         }
     )

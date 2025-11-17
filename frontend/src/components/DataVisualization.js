@@ -67,19 +67,19 @@ const DataVisualization = ({ selectedRecord }) => {
             });
             setError('');
         } else {
-            fetchAnalysisData();
+        fetchAnalysisData();
         }
     }, [selectedRecord]); // Runs when selectedRecord changes
 
     useEffect(() => {
         // Only fetch additional data if we're not using a selected record
         if (!selectedRecord) {
-            if (analysisData && !analysisData.attacks) {
-                fetchAttackData();
-            }
-            if (analysisData && !analysisData.confidence) {
-                fetchConfidenceData();
-            }
+        if (analysisData && !analysisData.attacks) {
+            fetchAttackData();
+        }
+        if (analysisData && !analysisData.confidence) {
+            fetchConfidenceData();
+        }
         }
     }, [analysisData, selectedRecord]);
 
@@ -108,9 +108,9 @@ const DataVisualization = ({ selectedRecord }) => {
             <div className="visualization-header">
                 <h2>Network Traffic Analysis</h2>
                 {!selectedRecord && (
-                    <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
-                        {loading ? 'Loading...' : 'Refresh Analysis'}
-                    </button>
+            <button onClick={fetchAnalysisData} disabled={loading} className="refresh-button">
+                {loading ? 'Loading...' : 'Refresh Analysis'}
+            </button>
                 )}
             </div>
             
@@ -207,7 +207,7 @@ const DataVisualization = ({ selectedRecord }) => {
             </div>
 
             {analysisData && (
-                <div className="analysis-details-grid">
+                    <div className="analysis-details-grid">
                         {analysisData.summary && (
                             <div className="details-section">
                                 <h4>Summary Information</h4>
