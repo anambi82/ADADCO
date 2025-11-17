@@ -3,6 +3,9 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './DataVisualization.css';
 
+const CONFIDENCE_THRESHOLD = 0.8;
+const MIN_ATTACK_PERCENTAGE = 1; // percentage of total samples considered significant
+
 const DataVisualization = ({ selectedRecord }) => {
     const [analysisData, setAnalysisData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -84,9 +87,24 @@ const DataVisualization = ({ selectedRecord }) => {
     }, [analysisData, selectedRecord]);
 
     // Convert attack data for charts
-    const getAttackChartData = () => {
+    const getFilteredAttacks = () => {
         if (!analysisData?.attacks) return [];
-        return analysisData.attacks.map(attack => ({
+
+        return analysisData.attacks.filter(attack => {
+            const confidenceData = analysisData.confidence?.confidence_by_attack?.find(
+                c => c.attack_type === attack.attack_type
+            );
+            const confidence = confidenceData?.average_confidence;
+            const isLowConfidence = confidence !== undefined && confidence < CONFIDENCE_THRESHOLD;
+            const isInsignificant = attack.percentage !== undefined && attack.percentage < MIN_ATTACK_PERCENTAGE;
+
+            return !(isLowConfidence || isInsignificant);
+        });
+    };
+
+    const getAttackChartData = (attacks) => {
+        if (!attacks.length) return [];
+        return attacks.map(attack => ({
             name: attack.attack_type,
             count: attack.count,
             percentage: attack.percentage
@@ -102,6 +120,8 @@ const DataVisualization = ({ selectedRecord }) => {
     };
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
+    const filteredAttacks = getFilteredAttacks();
+    const attackChartData = getAttackChartData(filteredAttacks);
 
     return (
         <div className="data-visualization-container">
@@ -153,7 +173,7 @@ const DataVisualization = ({ selectedRecord }) => {
                         <div className="chart-wrapper">
                             <h3>Attack Type Distribution</h3>
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={getAttackChartData()}>
+                                <BarChart data={attackChartData}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                                     <YAxis />
@@ -166,23 +186,37 @@ const DataVisualization = ({ selectedRecord }) => {
 
                         <div className="chart-wrapper">
                             <h3>Attack Types Pie Chart</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
+                            <ResponsiveContainer width="100%" height={600}>
+                                <PieChart margin={{ top: 20, right: 20, bottom: 80, left: 20 }}>
                                     <Pie
-                                        data={getAttackChartData()}
+                                        data={attackChartData}
                                         cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
-                                        outerRadius={80}
+                                        cy="45%"
+                                        outerRadius={110}
                                         fill="#8884d8"
                                         dataKey="count"
+                                        label={({ name, percentage }) => percentage > 2 ? `${name}: ${percentage.toFixed(1)}%` : ''}
+                                        labelLine={false}
                                     >
-                                        {getAttackChartData().map((entry, index) => (
+                                        {attackChartData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip
+                                        formatter={(value, name, props) => [
+                                            `${value} occurrences (${props.payload.percentage.toFixed(2)}%)`,
+                                            'Count'
+                                        ]}
+                                    />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        align="center"
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                        formatter={(value, entry) => {
+                                            const payload = entry.payload;
+                                            return `${value}: ${payload.count} (${payload.percentage.toFixed(2)}%)`;
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -240,7 +274,7 @@ const DataVisualization = ({ selectedRecord }) => {
                             <div className="details-section">
                                 <h4>Attack Breakdown</h4>
                                 <div className="attack-list">
-                                    {analysisData.attacks.map((attack, index) => {
+                                    {filteredAttacks.map((attack, index) => {
                                         const confidenceData = analysisData.confidence?.confidence_by_attack?.find(
                                             c => c.attack_type === attack.attack_type
                                         );
@@ -270,6 +304,11 @@ const DataVisualization = ({ selectedRecord }) => {
                                             </div>
                                         );
                                     })}
+                                    {filteredAttacks.length === 0 && (
+                                        <div className="attack-item no-results">
+                                            <span>No attacks meet the significance/confidence thresholds.</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
