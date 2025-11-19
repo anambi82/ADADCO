@@ -32,7 +32,17 @@ const DataVisualization = ({ selectedRecord }) => {
         try {
             const response = await axios.get('http://localhost:8000/analysis/attacks');
             if (response.data.available) {
-                setAnalysisData(prev => ({ ...prev, attacks: response.data.attacks }));
+                setAnalysisData(prev => {
+                    // Recalculate percentages based on anomalies only (excluding benign)
+                    const totalAnomalies = prev?.summary?.total_samples && prev?.summary?.benign_count !== undefined
+                        ? (prev.summary.total_samples - prev.summary.benign_count)
+                        : (prev?.summary?.anomaly_count || 0);
+                    const attacksWithPercentage = response.data.attacks.map(attack => ({
+                        ...attack,
+                        percentage: totalAnomalies > 0 ? (attack.count / totalAnomalies * 100) : 0
+                    }));
+                    return { ...prev, attacks: attacksWithPercentage };
+                });
             }
         } catch (err) {
             console.error('Error fetching attack data:', err);
@@ -53,11 +63,14 @@ const DataVisualization = ({ selectedRecord }) => {
     useEffect(() => {
         // If a record is selected, use it; otherwise fetch fresh data
         if (selectedRecord) {
-            // Format attacks to include percentage for charts (calculate from counts)
+            // Format attacks to include percentage for charts (calculate from counts, excluding benign)
+            const totalAnomalies = selectedRecord.summary?.total_samples && selectedRecord.summary?.benign_count !== undefined
+                ? (selectedRecord.summary.total_samples - selectedRecord.summary.benign_count)
+                : (selectedRecord.summary?.anomaly_count || 0);
             const attacksWithPercentage = selectedRecord.attacks?.map(attack => ({
                 ...attack,
-                percentage: selectedRecord.summary?.total_samples 
-                    ? (attack.count / selectedRecord.summary.total_samples * 100) 
+                percentage: totalAnomalies > 0 
+                    ? (attack.count / totalAnomalies * 100) 
                     : 0
             })) || [];
             
@@ -104,10 +117,13 @@ const DataVisualization = ({ selectedRecord }) => {
 
     const getAttackChartData = (attacks) => {
         if (!attacks.length) return [];
+        const totalAnomalies = analysisData?.summary?.total_samples && analysisData?.summary?.benign_count !== undefined
+            ? (analysisData.summary.total_samples - analysisData.summary.benign_count)
+            : (analysisData?.summary?.anomaly_count || 0);
         return attacks.map(attack => ({
             name: attack.attack_type,
             count: attack.count,
-            percentage: attack.percentage
+            percentage: totalAnomalies > 0 ? (attack.count / totalAnomalies * 100) : (attack.percentage || 0)
         }));
     };
 
